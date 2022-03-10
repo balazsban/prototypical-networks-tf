@@ -26,6 +26,18 @@ class DataLoader(object):
 
         return support, query
 
+def load_and_preprocess_image(img_path):
+    """
+    Load and return preprocessed image.
+    Args:
+        img_path (str): path to the image on disk.
+    Returns (Tensor): preprocessed image
+    """
+    img = Image.open(img_path).resize((84, 84, 3))
+    img = np.asarray(img)
+    # img = 1 - img
+    return np.expand_dims(img, -1)
+
 
 def load_class_images(n_support, n_query, img_paths):
     """
@@ -61,7 +73,7 @@ def load_class_images(n_support, n_query, img_paths):
 
     # Query dataset
     query_imgs_proc = []
-    for i in range(n_support):
+    for i in range(n_query):
         img_proc = load_and_preprocess_image(query_paths[i])
         img_proc = tf.expand_dims(img_proc, 0)
         query_imgs_proc.append(img_proc)

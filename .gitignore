@@ -2,3 +2,4 @@ data/omniglot/data
 data/mini-imagenet
 scripts/__pycache__
 .DS_Store
+results/*
