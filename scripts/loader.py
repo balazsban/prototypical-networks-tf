@@ -1,5 +1,5 @@
-from .omniglot import load_omniglot
-from .mini_imagenet import load_mini_imagenet
+from omniglot import load_omniglot
+from mini_imagenet import load_mini_imagenet
 
 
 def load(data_dir, config, splits):

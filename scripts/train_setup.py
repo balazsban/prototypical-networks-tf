@@ -7,16 +7,23 @@ import os
 import time
 import numpy as np
 import tensorflow as tf
-tf.config.gpu.set_per_process_memory_growth(True)
 
-from prototf.models import Prototypical
-from prototf.data import load
-from prototf import TrainEngine
+gpus = tf.config.experimental.list_physical_devices("GPU")
+if gpus:
+  try:
+    for gpu in gpus:
+      tf.config.experimental.set_memory_growth(gpu, True)
+  except RuntimeError as e:
+    print(e)
+
+from prototypical import Prototypical
+from loader import load
+from train_engine import TrainEngine
 
 
 def train(config):
-    np.random.seed(2019)
-    tf.random.set_seed(2019)
+    np.random.seed(1)
+    tf.random.set_seed(1)
 
     # Create folder for model
     model_dir = config['model.save_path'][:config['model.save_path'].rfind('/')]
