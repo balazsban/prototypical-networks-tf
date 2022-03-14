@@ -1,6 +1,5 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow import keras
 from tensorflow.keras.layers import Dense, Flatten, Conv2D
 from tensorflow.keras import Model
 from tensorflow.keras.models import load_model
@@ -24,7 +23,7 @@ def calc_euclidian_dists(x, y):
     return tf.reduce_mean(tf.math.pow(x - y, 2), 2)
 
 
-class Prototypical(Model):
+class PrototypicalOriginal(Model):
     """
     Implemenation of Prototypical Network.
     """
@@ -40,27 +39,31 @@ class Prototypical(Model):
         super(Prototypical, self).__init__()
         self.w, self.h, self.c = w, h, c
 
-        self.conv_layers = [
-            tf.keras.layers.Conv2D(filters=64, kernel_size=3, padding="same", activation='relu'),
-            tf.keras.layers.Conv2D(filters=64, kernel_size=3, padding="same", activation='relu'),
-            tf.keras.layers.Conv2D(filters=64, kernel_size=3, padding="same", activation='relu'),
-            tf.keras.layers.Conv2D(filters=64, kernel_size=3, padding="same", activation='relu')
-        ]
-        self.max_pool_layers = [
-            tf.keras.layers.MaxPool2D(),
-            tf.keras.layers.MaxPool2D(),
-            tf.keras.layers.MaxPool2D(),
-            tf.keras.layers.MaxPool2D()
-        ]
-        self.batch_norm_layers = [
+        # Encoder as ResNet like CNN with 4 blocks
+        self.encoder = tf.keras.Sequential([
+            tf.keras.layers.Conv2D(filters=64, kernel_size=3, padding='same'),
+            tf.keras.layers.ReLU(),
+            tf.keras.layers.MaxPool2D((2, 2)),
             tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.BatchNormalization()
-        ]
-        self.flatten_layer = tf.keras.layers.Flatten()
 
-    def call(self, support, query, training=False):
+            tf.keras.layers.Conv2D(filters=64, kernel_size=3, padding='same'),
+            tf.keras.layers.ReLU(),
+            tf.keras.layers.MaxPool2D((2, 2)),
+            tf.keras.layers.BatchNormalization(),
+
+            tf.keras.layers.Conv2D(filters=64, kernel_size=3, padding='same'),
+            tf.keras.layers.ReLU(),
+            tf.keras.layers.MaxPool2D((2, 2)),
+            tf.keras.layers.BatchNormalization(),
+
+            tf.keras.layers.Conv2D(filters=64, kernel_size=3, padding='same'),
+            tf.keras.layers.ReLU(),
+            tf.keras.layers.MaxPool2D((2, 2)),
+            tf.keras.layers.BatchNormalization(),
+            Flatten()]
+        )
+
+    def call(self, support, query):
         n_class = support.shape[0]
         n_support = support.shape[1]
         n_query = query.shape[1]
@@ -71,24 +74,20 @@ class Prototypical(Model):
         target_inds = tf.reshape(tf.range(n_class), [n_class, 1])
         target_inds = tf.tile(target_inds, [1, n_query])
 
-        x = tf.reshape(support, [n_class * n_support, self.w, self.h, self.c])
+        # merge support and query to forward through encoder
+        cat = tf.concat([
+            tf.reshape(support, [n_class * n_support,
+                                 self.w, self.h, self.c]),
+            tf.reshape(query, [n_class * n_query,
+                               self.w, self.h, self.c])], axis=0)
+        z = self.encoder(cat)
 
-        for i in range(len(self.conv_layers)):
-            x = self.conv_layers[i](x)
-            x = self.max_pool_layers[i](x)
-            x = self.batch_norm_layers[i](x, training=True)
-        z_support = self.flatten_layer(x)
-
-        z_prototypes = tf.reshape(z_support, [n_class, n_support, z_support.shape[-1]])
+        # Divide embedding into support and query
+        z_prototypes = tf.reshape(z[:n_class * n_support],
+                                  [n_class, n_support, z.shape[-1]])
+        # Prototypes are means of n_support examples
         z_prototypes = tf.math.reduce_mean(z_prototypes, axis=1)
-
-        x = tf.reshape(query, [n_class * n_query, self.w, self.h, self.c])
-
-        for i in range(len(self.conv_layers)):
-            x = self.conv_layers[i](x)
-            x = self.max_pool_layers[i](x)
-            x = self.batch_norm_layers[i](x, training=False)
-        z_query = self.flatten_layer(x)
+        z_query = z[n_class * n_support:]
 
         # Calculate distances between query and prototypes
         dists = calc_euclidian_dists(z_query, z_prototypes)
@@ -114,7 +113,7 @@ class Prototypical(Model):
         Returns: None
 
         """
-        self.save(model_path)
+        self.encoder.save(model_path)
 
     def load(self, model_path):
         """
@@ -126,5 +125,5 @@ class Prototypical(Model):
         Returns: None
 
         """
-        # self.encoder(tf.zeros([1, self.w, self.h, self.c]))
-        self.load_weights(model_path)
+        self.encoder(tf.zeros([1, self.w, self.h, self.c]))
+        self.encoder.load_weights(model_path)

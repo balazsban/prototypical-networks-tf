@@ -19,13 +19,13 @@ The repository organized as follows. `data` directory contains scripts for datas
 ### Training
 
 -   Training and evaluation configurations are specified through config files, each config describes single train+eval evnironment.
--   Run `python scripts/train/run_train.py --config scripts/config_omniglot.conf` to run training on Omniglot with default parameters.
--   Run `python scripts/train/run_train.py --config scripts/config_miniimagenet.conf` to run training on miniImagenet with default parmeters
+-   Run `python scripts/run_train.py --config scripts/config_omniglot.conf` to run training on Omniglot with default parameters.
+-   Run `python scripts/run_train.py --config scripts/config_miniimagenet.conf` to run training on miniImagenet with default parmeters
 
 ### Evaluating
 
--   Run `python scripts/eval/run_eval.py --config scripts/config_omniglot.conf` to run evaluation on Omniglot
--   Run `python scripts/eval/run_eval.py --config scripts/config_miniimagenet.conf` to run evaluation on miniImagenet
+-   Run `python scripts/run_eval.py --config scripts/config_omniglot.conf` to run evaluation on Omniglot
+-   Run `python scripts/run_eval.py --config scripts/config_miniimagenet.conf` to run evaluation on miniImagenet
 
 ### Tests
 
